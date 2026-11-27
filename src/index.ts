@@ -1,3 +1,4 @@
+import connectDB from "./config/database.js";
 import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
 import type { BaseContext } from "@apollo/server";
@@ -75,6 +76,8 @@ const resolvers = {
     },
   },
 };
+
+await connectDB();
 
 const server = new ApolloServer<ContextValue>({ typeDefs, resolvers });
 
