@@ -1,5 +1,6 @@
 import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
+import type { BaseContext } from "@apollo/server";
 
 const typeDefs = `#graphql
   type User {
@@ -14,6 +15,7 @@ type Query {
   user(id: ID!): User
   users: [User!]!
   usersByName(name: String!): [User!]!
+  me: User
 }
 `;
 
@@ -32,11 +34,18 @@ const usersData = [
   },
   {
     id: "3",
-    name: "Régis",
-    email: "regis1@example.com",
+    name: "ALEX",
+    email: "allex@example.com",
     age: 25,
   },
 ];
+
+interface ContextValue extends BaseContext {
+  user: {
+    id: string;
+    role: string;
+  } | null;
+}
 
 const resolvers = {
   Query: {
@@ -48,17 +57,34 @@ const resolvers = {
 
     users: () => usersData,
     usersByName: (_parent: unknown, args: { name: string }) => {
-      return usersData.filter((user) => user.name === args.name);
+      return usersData.filter((user) =>
+        user.name.toLowerCase().includes(args.name.toLowerCase()),
+      );
+    },
+
+    me: (
+      _parent: unknown,
+      _args: Record<string, never>,
+      context: ContextValue,
+    ) => {
+      if (!context.user) {
+        return null;
+      }
+
+      return usersData.find((user) => user.id === context.user?.id) ?? null;
     },
   },
 };
 
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-});
+const server = new ApolloServer<ContextValue>({ typeDefs, resolvers });
 
 const { url } = await startStandaloneServer(server, {
+  context: async () => ({
+    user: {
+      id: "1",
+      role: "USER",
+    },
+  }),
   listen: { port: 4000 },
 });
 
